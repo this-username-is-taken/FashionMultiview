@@ -256,46 +256,49 @@ We attempted to implement a GAN from scratch. However,
 
 \section{Experimentation Results}
 
-We use both quantitative and qualitative measures to assess the result of our work. 
-There are a number of 
-
-Figure 5 summarizes the image outputs by this VAE+GAN model on MVC and our synthetic dataset.
-
-\begin{figure*}[htbp]
-\centering
-\includegraphics{PICTURE4.png}
-\caption{//TODO: change to image output summarize graph}
-\end{figure*}
+We use both quantitative and qualitative measures to assess the result of our work.
 
 \subsection{Qualitative results}
 
-\begin{figure*}[htbp]
-\centering
-\includegraphics[width=50mm]{samples.png}
-\caption{Sample images trained and tested using synthetic images. Left to right: input image, output from cVAE, output from cGAN, our from our model, ground truth.}
-\end{figure*}
+The results of our final model is compared with other approaches and the ground truth (see Figure 5). Visually, our results have a more complete global appearance as well as more local details (note how the output of cGAN often loses patches of the body). At the same time, our result looks much sharper than the output of cVAE.
 
-For quantitative evaluation methods, we use the Structural Similarity Index (SSIM), the Inception Score (IS), and Root Mean Square Errors (RMSE) to compare the generated fine image output to target image, as a judgment for our model quality.
+\begin{figure}[htbp]
+\centering
+\includegraphics{PICTURE4.png}
+\caption{//TODO: change to image output summarize graph}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics{samples.png}
+\caption{Sample images trained and tested using synthetic images. Left to right: input image, output from cVAE, output from cGAN, our from our model, ground truth.}
+\end{figure}
+
+\subsection{Quantitative results}
+
+For quantitative evaluation methods, we use Mean Square Errors (MSE), Structural Similarity Index (SSIM), and the Inception Score (IS) to compare the generated fine image output to target image, as a judgment for our model quality.
 
 \begin{itemize}
-\item SSIM: Structural Similarity []:
+\item Structural Similarity Index (SSIM) \autocite{wang2004image}: SSIM measures the similarity between two images. It's a better metric than the pixelwise error (MSE) as it insensitive to things like lighting conditions and small variation in poses. It's been used in other works on multiview synthesis \autocite{park2017transformation, zhao2017multi}. It's formally defined as:
+
 $$SSIM(I_x,I_y)=\frac{(2\mu_x \mu_y + c_1)(2\sigma_{xy}+c_2)}{(\mu_x^2+\mu_y^2 +c_1)(\sigma_x^2+\sigma_y^2+c_2)}$$
 
-\item IS: Inception Score []:
-$$IS(I_x,I_y)=exp(E_{I_x}D_{KL(p(y|I_x)||p(y))})$$
-where $I_x,I_y$ are generated image and GT image respectively, and y is the label (the input angle in our model).
+\item Inception Score (IS): the Inception Score is adopted from Salimans' work on GANs \autocite{salimans2016improved} and is used to measure the quality of different generative models. The idea is that images that contain meaningful objects should have a conditional label distribution with low entropy while a model that generates varied images should have high entropy. The Inception Score is formally defined as:
+
+$$IS(I_x, y)=exp(E_{I_x}D_{KL(p(y|I_x) || p(y))})$$
+where $I_x$ is a generated image and $y$ is the label of that image predicted by the Inception model \autocite{szegedy2015going}.
 
 \end{itemize}
 
-For model comparison, we experimented the following 3 models on MVC and our synthetic dataset respectively, and compare the SSIM, IS, RMSE outputs:
+For model comparison, we experimented the following 3 models on MVC and our synthetic dataset respectively, and compare their SSIM, IS, MSE measures:
 
-1. Using only VAE
+1. Using only cVAE.
 
-2. Using only GAN
+2. Using only cGAN.
 
-3. Using our VAE+GAN pipeline
+3. Using our VAE+GAN pipeline.
 
-Figure 6 summarizes the result of our experimentations.
+Figure 7 summarizes the result of our experimentations.
 \begin{figure*}
   \includegraphics[width=\linewidth]{FigureTable.PNG}
   \caption{Experimental Results}
@@ -312,26 +315,17 @@ From the result metrics in the table, we can see that the following trends:
 
 4. In general, our model performs better on synthetic data than on real world data, this is because synthetic data is smoother, contains less details, and has similar pose, so the generation is relatively easier. 
 
-
-\section{Further Discussions and Future Work}
-
-1. In general, our model works well on synthetic images, as there are less noise in the data (e.g. no background, unified pose, similar texture, etc.).
-
-2. On MVC dataset, we achieved reasonably good result compared to other methods (see table above). Since VAE is capable of finding 
-global appearance with less details, while GAN is good at filling rich details of the synthesized image but less capable of capturing 
-global appearance and rough outlines for human/clothings, therefore, GAN and VAE complements each other well for image synthesis 
-in our architecture. The coarse image generated by VAE captures global appearance, while GAN fills in details to make the fine image.
-
-3. Our model does not perform well on face synthesis (compared to the body), since face contains more details and is harder to synthesize.
+\section{Future Work}
 
 In the future, we plan to work on the followings:
 
 1. Improve the GAN: we only used a simple conditional GAN with very little hyperparameter tuning. There is a number of recently published papers that shows various techniques to improve the quality and stability of GANs.
 
-2. Improve face synthesis: our model currently handles face poorly since it contains a lot of noticeable details. It is important to be able to recreate these details in a convincing way for good result. 
+2. Improve face synthesis: our model currently handles face poorly since it contains a lot of noticeable details. It is important to be able to recreate these details in a convincing way for good result. There are several promising attempts \autocite{yim2015rotating, huang2017beyond} that focuses solely on facial synthesis that we can follow up on.
 
 3. Include background: our current dataset only contains images without any background. It is more difficult to synthesize views when the object of interest is not presented in isolation and we would like to tackle that problem in the future.
 
+4. Transfer learning: we hope to use the model trained from our synthetic dataset on real images. Experiments on transfer learning \autocite{shrivastava2016learning} have shown great results for discriminative models. We hope to achieve similar results for generative models.
 
 \section{Conclusion}
 We aims at solving 360-degree full human body view synthesis problem by using our self-generated dataset and VAE+GAN modeling approach, while introducing some minor changes on modeling architecture and loss function compared with previous works [1,2,3].
@@ -341,13 +335,10 @@ Current preliminary results show some promising potential of our modeling approa
 
 Our teamwork break down:
 \begin{itemize}
-\item Si (Vincent) Wen: Vicent mainly works on modeling, including VAE and variants of GAN modeling, he also contributed to dataset generation (Fuse and MVC).
-\item Tiancong Zhou: Tiancong mainly works on dataset generation (human viewed from 360 degrees in Blender), he also contributed to data processing.
-\item Honghao Qiu: Honghao mainly works on modeling and reporting. He works on VAE+GAN modeling, super-resolution DC-GAN, and he is the main contributor to writing this report.
+\item Si (Vincent) Wen: Vincent mainly worked on modeling, including VAE and variants of GAN modeling. He also contributed to the final report.
+\item Tiancong Zhou: Tiancong mainly worked on the generation of our synthetic dataset and quantitative evaluation of our results.
+\item Honghao Qiu: Honghao mainly worked on reporting and modeling. He is the main contributor to writing this report.
 \end{itemize}
-
-Our team target at equal contributions from three team members across data, modeling, and reporting.  In general, all our teammates have made equal contribution to this project so far. We hope to successfully finish the project with our collective efforts!
-
 
 \printbibliography
 
