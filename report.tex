@@ -1,10 +1,15 @@
 \documentclass[10pt,conference]{IEEEtran}
+
 \usepackage{lmodern}
 \usepackage{amssymb,amsmath}
 \usepackage{ifxetex,ifluatex}
 \usepackage{multirow}
 \usepackage{booktabs}
 \usepackage{fixltx2e} % provides \textsubscript
+
+\usepackage[backend=bibtex,style=numeric]{biblatex}
+\bibliography{bibliography.bib}
+
 \ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
   \usepackage[T1]{fontenc}
   \usepackage[utf8]{inputenc}
@@ -101,13 +106,15 @@
 %comments
 
 \textbf{Abstract --  }
-\textbf{We use deep generative models to synthesize multiview images given a single view. The generation process is done in two stages: in the first stage, we train a variational auto-encoder (VAE) to synthesize a new view of the input image; in the second stage, we use a generative adversarial network (GAN) to generate details on the output of the first stage. We evaluate our results using both qualitative and quantitative methods. One potential application is generating multiview images for e-Commerce products.}
+\textbf{We use deep generative models to synthesize multiview images given a single view. The generation process is done in two stages: in the first stage, we train a variational auto-encoder (VAE) \autocite{kingma2013auto} to synthesize a new view of the input image; in the second stage, we use a generative adversarial network (GAN) \autocite{goodfellow2014generative} to generate details on the output of the first stage. We evaluate our results using both qualitative and quantitative methods. One potential application is generating multiview images for e-Commerce products.}
 
 
 \section{Introduction} 
-Our project aims to use machine learning techniques to generate multi-view images of a person given a single view RGB image. With the advances of generative adversarial networks in recent years, we try to tackle the problem of multi-view full human body synthesis from a given view in any angle. If successful, this could enable many useful applications in fashion/E-Commerce websites and in the field of photo/video edition and content generation, for example, in Amazon cloth stores we can help provide 360-degree rotation view for customers given a single front-view image taken for the model. 
+Multiview synthesis has been a long standing problem in computer vision. Traditionally, this problem had been attempted using geometry-based approaches. That is, a 3D model is first reconstructed from the input image, and the novel view is generated from that 3D model. However, with recent progress in deep learning, more and more people have attempted to synthesize novel views directly use deep neural networks \autocite{yim2015rotating, tatarchenko2016multi, zhao2017multi, zhou2016view, huang2017beyond, kueflerdeep, park2017transformation}, and have achieved great results.
 
-To achieve this goal, we use color images of human with clothes in different angles as input data, with both real world multiview fashion dataset from MVC [] and synthetic human images in 360-degree views generated from Fuse/Blender. Then we use deep neural network approach to generate output images from the inputs, where the model is trained in a two steps. Firstly, the condition image (human body in a specific angle) and the value of target angle (e.g. 90 degree) are inputed into Variational Auto-Encoder to generate a coarse image output for the target view, and then this coarse image along with the condition image are both inputed into a Siamese Network to generate fine image output for the target view angle. The output image is compared with the ground truth image in target angle by a CNN discriminator, and the generative network is trained adversarially. 
+Our project limits the scope of the multiview synthesis problem to human images, with a focus on the clothing items in these images. Given the recent progress in deep generative models and their amazing results on image synthesize and style transfer \autocite{oord2016pixel, isola2016image, zhu2017unpaired, karras2017progressive}, we try to tackle this problem using similar approaches. Our goal is to synthesize images of a particular person from any view given a single input view. If successful, this could enable many useful applications in fashion/E-Commerce websites and in the field of photo/video edition and content generation. For example, in Amazon cloth stores we can help provide 360-degree rotation view for customers given a single front-view image taken for the model.
+
+To achieve this goal, we use images of people with different dress in different angles as input data, with both real world multiview fashion dataset from MVC \autocite{liu2016mvc} and synthetic human images rendered in 360-degree views. Then we use deep neural networks to generate output images from the inputs in a two-stage process. First, the input image (human body in a specific angle) and the value of target angle (e.g. 90 degree) are fed into a VAE to generate a coarse image output in the target angle, and then this coarse image along with the original input image are both fed into a GAN to generate a fine image in the target angle.
 
 Figure 1 further illustrates the idea of this process with a specific example.
 
@@ -232,7 +239,7 @@ We attempted to implement a GAN from scratch. However,
 \section{Experimentation Results}
 
 We use both quantitative and qualitative measures to assess the result of our work. 
-We  start our project by generating side-view images from a frontal synthetic image, and then move to real images. We then try to generate views from all angles, including the ones where one cannot easily infer the person’s look from the frontal image (e.g. the back of the head, hair, cloth, etc). Given time, we will also try solving the problem under different lighting and background conditions. The performance of the model output is judged by both loss comparison with previous models, and by comparison results provided by a set of human judges.
+There are a number of 
 
 Figure 5 summarizes the image outputs by this VAE+GAN model on MVC and our synthetic dataset.
 
@@ -240,6 +247,14 @@ Figure 5 summarizes the image outputs by this VAE+GAN model on MVC and our synth
 \centering
 \includegraphics{PICTURE4.png}
 \caption{//TODO: change to image output summarize graph}
+\end{figure*}
+
+\subsection{Qualitative results}
+
+\begin{figure*}[htbp]
+\centering
+\includegraphics[width=50mm]{samples.png}
+\caption{Sample images trained and tested using synthetic images. Left to right: input image, output from cVAE, output from cGAN, our from our model, ground truth.}
 \end{figure*}
 
 For quantitative evaluation methods, we use the Structural Similarity Index (SSIM), the Inception Score (IS), and Root Mean Square Errors (RMSE) to compare the generated fine image output to target image, as a judgment for our model quality.
@@ -315,32 +330,7 @@ Our teamwork break down:
 
 Our team target at equal contributions from three team members across data, modeling, and reporting.  In general, all our teammates have made equal contribution to this project so far. We hope to successfully finish the project with our collective efforts!
 
-\section{References}
 
-[1] Goodfellow et al, Generative Adversarial Nets, $https://arxiv.org/pdf/1406.2661.pdf$ 
-
-[2] Zhao et al, Multi-View Image Generation from a Single-View, $https://arxiv.org/pdf/1704.04886.pdf$
-
-[3] Huang et al, Beyond Face Rotation: Global and Local Perception GAN for Photorealistic and Identity Preserving Frontal View Synthesis, $https://arxiv.org/pdf/1704.04086.pdf$ 
-
-[4] Yim et al, Rotating Your Face Using Multi-task Deep Neural Network, $https://www.cv-foundation.org/openaccess/content_cvpr_2015/papers/-Yim_Rotating_Your_Face_2015_CVPR_paper.pdf$
-
-[5] Ashish et al, Learning from Simulated and Unsupervised Images through Adversarial Training, $https://arxiv.org/abs/1612.07828$
-
-[6] Rajpura et al, Object Detection Using Deep CNNs Trained on Synthetic Images, $https://arxiv.org/pdf/1706.06782.pdf$
-
-[7] Diederik et al, Auto-Encoding Variational Bayes, $https://arxiv.org/pdf/1312.6114.pdf$
-
-[8] Kihyuk et al, Learning Structured Output Representation using Deep Conditional Generative Models, $https://pdfs.semanticscholar.org/3f25/-e17eb717e5894e0404ea634451332f85d287.pdf$
-
-[9] IJCAI 2017, NEU, Fashion Style Generator, $https://www.ijcai.org/proceedings/2017/0520.pdf$
-
-[10] NIPS 2017, ETH/MPII, Pose Guided Person Image Generation, $https://arxiv.org/pdf/1705.09368.pdf$
-
-[11] Bowman et al, Generating Sentences from a Continuous Space, $https://arxiv.org/pdf/1511.06349.pdf$
-
-[12] MVC Fashion Dataset, $http://mvc-datasets.github.io/MVC/$
-
-[13] Deep Fashion Dataset, $http://mmlab.ie.cuhk.edu.hk/projects/DeepFashion.html$
+\printbibliography
 
 \end{document}
