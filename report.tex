@@ -126,13 +126,31 @@ Figure 1 further illustrates the idea of this process with a specific example.
 
 
 \section{Related Work}
-In recent years, there have been numerous attempts to solve subsets of this problem. 
 
-On one hand, some previous research attempt to generate full human body image for some specific angles given the front view. For example, Zhao et al [2] proposed a VAE+GAN model to synthesize the side and back view of a person given the frontal view. This approach has the strength of combining the ability of VAE to find global appearance/outline and the ability of GAN to fill in fine details. This approach inspires us to try a very similar model pipeline. However, there are several limitations in their work: 1. in their paper, their model inputs the target image into VAE for generating coarse image output, where we want to get rid of this input, 2. due to the limitation of available data, their model only generates side and back view image outputs, and cannot be extended to output images for any target angle, 3. their work mainly focuses on the person’s clothing, and the resulting image contains poorly synthesized face. Our work would try to overcome these limitations.
+\subsection{Geometry-based Multiview Synthesis}
 
-On the other hand, some other researches work on generating specific areas of human, such as faces, hands, etc. instead of full human body, and still, due to the limitation of available data, the synthesis outputs are typically in limited views such as front/side/back view. For example, Huang et al [3] proposed a method to provide photorealistic synthesis of the frontal views of a person’s face given a side view. We try to leverage some of their loss functions that are helpful for face synthesis and include them into our method when we generate multiview images of an entire person.
+A large amount of work has been put into the multiview synthesis problem. Geometry-based approaches are widely used in the past. These approaches either implicitly or explicitly model the geometry of the object in interest, and synthesize novel views from the modeled geometry. Often, these approaches are used when multiple views \autocite{furukawa2015multi} of the object exist as input (e.g. stereo), so visual correspondence can be found and used as constraints to the algorithm. In the case of a single input view, either manual annotation \autocite{chen20133} or additional information \autocite{su20143d} is needed for these algorithms to perform well.
 
-There are some other related works for object rotation [6,8] (such as car/chair), and 3d model generation based on multiview images [3,5,6]. Some of their work [] has reached pretty good results for generating 360-degree synthesis by using [TODO: MODEL], but this task is relatively less difficult compared to multiview human and fashion synthesis since the target object output typically contains less details and simpler texture to be generated. 
+\subsection{Deep Learning Approaches}
+
+With the recent progress in deep learning, people have started to solve the multiview synthesis problem using deep neural networks. The ShapeNet dataset \autocite{chang2015shapenet} indexed over 3 million 3D models cross over 3,000 categories, and its corresponding competition has attracted many submissions (e.g. \autocite{zhou2016view, tatarchenko2016multi, park2017transformation}) that uses deep learning to synthesis novel views.
+
+At the same time, there has been an explosion of interest in deep generative models in the past couple years. These models are capable of learning the latent representation of their input dataset and generate new images with interesting variations. These approaches can be grouped into 3 main categories:
+
+\begin{itemize}
+\item Autoregressive (e.g. PixelRNN \autocite{oord2016pixel}): this approach uses a neural network to model the conditional distribution of every pixel in the image given previous pixels (e.g. the pixel to the left or to the top). Its result is very good but it is also extremely computationally intensive given large images.
+
+\item Variational Auto-encoder (VAE) \autocite{kingma2013auto}: this approach uses a neural network to model the distribution of the input data and tries to maximize the lower bound on its log likelihood.
+
+\item Generative Adversarial Network (GAN) \autocite{goodfellow2014generative, radford2015unsupervised}: this approach doesn't model the distribution directly but uses adversarial training to reproduce the data distribution.
+
+\end{itemize}
+
+These methods (particularly GAN) have also been extended to generate new images based on certain types of conditions \autocite{mirza2014conditional}. For example, Yan et al \autocite{yan2016attribute2image} used conditional generative adversarial network (cGAN) to change facial expression of synthesized images by interpolating specific latent variables and Zhang el al \autocite{zhang2017age} used conditional variational auto-encoder to generate an new image of a person at a particular age. People have also used GANs \autocite{isola2016image, zhu2017unpaired} to perform style transfer tasks with great results.
+
+\subsection{Fashion/Clothing Multiview Synthesis}
+
+Even in the space of fashion/clothing image synthesis, there has been a number of approaches using deep generative models. Zhu et al \autocite{zhu2017your} used GAN to synthesize images of people wearing different types of cloth given a source image and a verbal description (e.g. red shirt with blue striped skirt). Zhao et al \autocite{zhao2017multi} proposed a VAE+GAN model to synthesize the side and back view of a person given the frontal view. This approach has the strength of combining the ability of VAE to find global appearance/outline and the ability of GAN to fill in fine details. We adopt a similar approach to generate multiview images and extend it to work for any of the 360-degree views.
 
 \section{Dataset and Features}
 Solving this problem requires large amount of training data for the network to learn the latent representation. We use a combination of real world datasets and synthetic datasets. We used a combination of MVC datasets (160,000 real images) and 80,000 synthetic images (360-degrees views). Image data are labeled with the associated angles for the view (e.g. 60 degree). Due to this relatively large dataset, we use around 1\% images for testing and the rest of data for training.
