@@ -178,27 +178,17 @@ Figure 2 contains some examples of the synthetic images we generated.
 
 We use a number of standard data augmentation techniques to preprocess our input data. We vary the lighting and camera position in Blender. We apply small random crops to the images, and randomly apply light Gaussian blur. Note that we do not perform random horizontal flips as we already have an image at the resulting view.
 
+Since we use batch normalization \autocite{ioffe2015batch} for all layers, we do not normalize our input image. However, we do normalize the value of the target angle to [-0.5, 0.5] since it gets concatenated with the latent variables.
+
+Since neural networks take a long time to train, all initial experiments are done using images of size 64x64. The final results are trained on images of 128x128 resolution. We notice significant improvements on the quality of our results when trained using higher resolution images, and we believe this improvement will continue as the resolution goes higher.
+
 \section{Methods}
 
 \subsection{Overview}
 
 We tackle this problem using deep generative models. We divide our pipeline into two stages: the first stage consists of an input image, a target angle (0 to 360 degrees), and a conditional VAE. The encoder transforms the input image into a latent variable, concatenate it with the target angle, and passes them through the decoder. The decoded image should resemble the input image in the target angle, with noticeable artifact (e.g. blurry, sometimes with incorrect colors). The second stage consists of the original input image, output of the first stage (coarse image), and a conditional GAN. Both images are fed into a hierarchical feature extractor to obtain their latent representations. These latent representations are then concatenated and fed into a generator to obtain the final output. The generator is able to extract low level patterns from the original input image and generate a new image that conforms to the structure of the coarse image with patterns from the original input image.
 
-\subsection{Variational Auto-Encoder (VAE)}
-
-Similar to GAN taught in the class, Variational Auto-Encoder is a generative deep neural network, instead of learning through an adversarial process, it tries to approximate the data distribution directly using KL divergence and a reconstruction loss. Because of this, it is easier to train than a GAN, and is able to consistently generate the global appearance of the input image in a target view. However, since it assumes the data comes from a normal distribution, it often produces blurry results. 
-
-In the first stage of our pipeline, the VAE encodes the input image, concatenates it with the target angle (scalar value in [0, 360]), and feeds them through the decoder to produce an image in the target view.
-
-
-\subsection{Generative Adversarial Network (GAN)}
-
-Since VAE result primarily captures global appearance but lacks details, we hope to use a generative network to fill in these details for making fine image, and this is what GAN is capable of doing. At the same time, the conditional conditions we introduced to the GAN makes it more stable during training and thus making the generated final result with much higher quality.
-
-As is shown in the second stage of our pipeline in figure 3, we feed the input image and the output from VAE through a Siamese network to produce the final fine image in the target view, and is trained adversarially.
-
-\subsection{Pipeline Overview}
-We combines variants of the Generative Adversarial Network (GAN) [1] to solve this problem. GAN is a generative approach that learns a distribution to represent the training data. We can then generate new images sampled from that distribution, conditioned on the input image and the desired angles. Figure 3 illustrates our pipeline.
+Our network is written in Python using the Tensorflow framework. We trained our models using NVIDIA Tesla GPUs.
 
 \begin{figure*}[htbp]
 \centering
@@ -206,53 +196,30 @@ We combines variants of the Generative Adversarial Network (GAN) [1] to solve th
 \caption{Pipeline Overview}
 \end{figure*}
 
-As is shown in Zhao et al paper [VariGan, 2], GAN is good at filling rich details of the synthesized image but less capable of capturing global appearance and rough outlines for human/clothings, and on the other hand, VAE [7] is more capable of finding global appearance with less detailed details, therefore, GAN and VAE are good complements of each other for image synthesis. Our model follows the following two-step approach to achieve image synthesis: 1) firstly use VAE to model coarse global appearance (outline/structure of the image), 2) then use variants of GAN to model refined details of the person and get fine synthesized images of full human body in multiviews. Compared to Zhao's model, we did not input the target image into VAE, but instead only input conditional image and the target angle to VAE model. Another improvement we are making is, with our synthetic data for human body from all angles, we target at outputting all 360-degree multiview human synthesis from a given view of any angle. This is achieved by changing the angle degree input in the VAE model during training process according to the label of target output image (i.e. the target angle). 
-
-
-\subsection{Network Architecture}
-\textbf{VAE Architecture} 
-We use 6 convolution layers in the VAE encoder to down sample input image and use a fully connected layer to transform it into a 1024-dimension representation. Then, the latent variable is passed into the 6 layer convolutional layer decoder along with embedded target view angle to generate a $128\times128\times3$ image.
-
-\textbf{GAN Architecture} 
-The generator for fine image is a Siamese network which contains two weights-sharing encoders to process conditional image and coarse image output by VAE. We use a similar architecture to VAE here, where 6 layers convolution layers are used to find the 1024-dimension representation of the input images, and then it is up-sampled by the decoder (also a 6 layer CNN) to generate the $128\times128\times3$ fine image output.
-
-\subsection{Objective (Loss) Function}
-We mainly use the following loss functions (with penalty factor assigned to each loss and calculating the combined loss as objective loss function):
-
-\begin{itemize}
-\item Adversarial loss:\\
-Our adversarial loss is defined as:
-$$ E_{I_v \sim p_{data(I_v)}}[log D(I_v)] + E_{z \sim p(z)}[log (1- D(I_v, G(z, I_v)))], $$
-here $I_v$ stands for Image given a Viewpoint, D is the discriminator and G is the generator to be trained simultaneously. This is closely adapted from [1].
-
-\item VAE loss:\\
-As is shown in Bowman et al's work [11], we are also using the standard VAE loss term, which is defined as the sum of KL-divergence loss and a reconstruction loss term:
-$$ L(\theta;x)= -KL(q_\theta(z|x)||p(z))+E_{q_\theta(z|x)}[log(p_\theta(x|z))] $$
-
-\item Pixel to pixel loss:\\
-One potential reason why VariGAN approach has a poor performance on head synthesis might be only adversarial loss being used in GAN's objective. Inspired by Huang et al's work [3], we try to model face generation better by using pixel to pixel comparison loss, in this way face features would be better captured since incorrectly predicted faces are penalized with additional loss (more details are discussed in Objective Function section).
-
-The pixel-wise loss can be expressed as [3]:
-$$ \frac{1}{L \times H} \sum_{x=1}^L \sum_{y=1}^H |\hat{I}_{x,y}- I_{x,y}|, $$
-where L stands for Length (number of pixels in row-wise), and H stands for Height (number of pixels in column-wise). $\hat{I}_{x,y}$ is the predicted pixel of the image and $I_{x,y}$ is the corresponding pixel in GT.
-
-\item Regularization term in loss function:\\
-We use adaptive L2 regularization on the discriminator to penalize large weights and mitigate over-fitting. As is shown in [1], this is helpful when discriminator is too strong for the generator and the regularization term can be decreased when generator catches up with the discriminator.
-
-\end{itemize}
-
-
-\subsection{Implementation Details}
-
-We implemented the VAE from scratch, and gradually 
+\subsection{Stage 1: cVAE}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics{experiments.png}
-\caption{Row 1-4: output of VAEs with (1) fully-connected layers only with insufficient amount of  hidden neurons (2) fully-connected layers only with sufficient hidden neurons (3) convolutional layers with insufficient amount of filters (4) convolutional layers with sufficient amount of filters. }
+\caption{Row 1-4: output of VAEs with (1) fully-connected layers only with insufficient amount of  hidden neurons (2) fully-connected layers only with sufficient hidden neurons (3) convolution layers with insufficient amount of filters (4) convolution layers with sufficient amount of filters. }
 \end{figure}
 
-We attempted to implement a GAN from scratch. However, 
+We implemented the VAE from scratch, going from a simple fully-connected network with two hidden layers to a deep convolutional network consisting of 13 layers. Figure 4 shows the results of some of our intermediate work. Notice how the number of neurons is extremely important in capturing variation, and that convolution layers are much better at hierarchical representations.
+
+The input is 128x128 pixels. The encoder consists of 6 convolution layers all with 3x3 kernels. The layers have 16, 16, 32, 32, 64, 1 filters respectively. We downsample the input twice with strided-convolutions. In the last layer, we flatten the result into a 1024-dimensional vector and pass it through a fully connected hidden layer to generate parameters to the learned distribution using the parameterization trick \autocite{kingma2013auto}. We use these parameters to sample our latent variables from a 400-dimensional Gaussian distribution and concatenate them with the normalized target angle. They then goes through a decoder that has a similar structure but in reverse, with two upsamples in the middle.
+
+The loss function is defined as follows:
+
+\begin{multline}
+L(\theta;x, c)= -KL(q_\theta(z|x, c)||p(z|c))+ \\
+E_{q_\theta(z|x, c)}[log(p_\theta(x|z, c))]
+\end{multline}
+
+\subsection{Stage 2: cGAN}
+
+We attempted to implement a GAN from scratch. However, GAN is notoriously known for its instability and its difficulty to train. Our experience confirms this knowledge. Although the GAN community has proposed many techniques to make the training process easier \autocite{salimans2016improved, arjovsky2017wasserstein, karras2017progressive}, we decided not to implement one from scratch, but to build on top of an existing implementation \footnote{https://github.com/affinelayer/pix2pix-tensorflow}. There are several features of this implementation that we find desirable: it uses U-Net, which allows for better generation quality; it uses convolution transpose (fractionally-strided convolutions) instead of bilinear interpolation for upsampling; it uses Leaky ReLU instead of ReLU as activation functions. This implementation worked well without much hyperparameter tuning.
+
+We modified the above implementation so that it takes two 128x128 sized images, passed them through an encoder with shared weights, concatenated their respective latent representations, and finally passed them through the decoder. We did not make any changes to the discriminator. The final generator is a 7-layer U-Net with 64, 128, 256, 512, 512, 512, 512 filters in each of the layers.
 
 \section{Experimentation Results}
 
@@ -292,11 +259,11 @@ where $I_x$ is a generated image and $y$ is the label of that image predicted by
 
 For model comparison, we experimented the following 3 models on MVC and our synthetic dataset respectively, and compare their SSIM, IS, MSE measures:
 
-1. Using only cVAE.
-
-2. Using only cGAN.
-
-3. Using our VAE+GAN pipeline.
+\begin{itemize}
+\item Using only cVAE.
+\item Using only cGAN.
+\item Using our VAE+GAN pipeline.
+\end{itemize}
 
 Figure 7 summarizes the result of our experimentations.
 \begin{figure*}
@@ -307,25 +274,26 @@ Figure 7 summarizes the result of our experimentations.
 
 From the result metrics in the table, we can see that the following trends: 
 
-1. SSIM obtained by our VAE+GAN approach is larger than that of obtained by using VAE or GAN alone, which means our generated output image is more similar to the ground truth; 
-
-2. IS score for VAE+GAN is larger than that of using VAE only, but smaller than IS score using GAN only, this is expected since GAN model alone allows more variation in the output images. 
-
-3. RMSE analysis shows that VAE+GAN RMSE is smaller than that of using VAE or GAN alone, this resonates with the result of SSIM and proves that our approach in general has better performance generating images closer to target. 
-
-4. In general, our model performs better on synthetic data than on real world data, this is because synthetic data is smoother, contains less details, and has similar pose, so the generation is relatively easier. 
+\begin{itemize}
+\item SSIM obtained by our VAE+GAN approach is larger than that of obtained by using VAE or GAN alone, which means our generated output image is more similar to the ground truth; 
+\item IS score for VAE+GAN is larger than that of using VAE only, but smaller than IS score using GAN only, this is expected since GAN model alone allows more variation in the output images. 
+\item MSE analysis shows that VAE+GAN MSE is smaller than that of using VAE or GAN alone, this resonates with the result of SSIM and proves that our approach in general has better performance generating images closer to target. 
+\item In general, our model performs better on synthetic data than on real world data, this is because synthetic data is smoother, contains less details, and has similar pose, so the generation is relatively easier.
+\end{itemize}
 
 \section{Future Work}
 
-In the future, we plan to work on the followings:
+Due to time constraints, there are many things on our roadmap that we haven't gotten to. Some of these things include:
 
-1. Improve the GAN: we only used a simple conditional GAN with very little hyperparameter tuning. There is a number of recently published papers that shows various techniques to improve the quality and stability of GANs.
+\begin{itemize}
+\item Improve the GAN: we only used a simple conditional GAN with very little hyperparameter tuning. There is a number of recently published papers that shows various techniques to improve the quality and stability of GANs.
 
-2. Improve face synthesis: our model currently handles face poorly since it contains a lot of noticeable details. It is important to be able to recreate these details in a convincing way for good result. There are several promising attempts \autocite{yim2015rotating, huang2017beyond} that focuses solely on facial synthesis that we can follow up on.
+\item Improve face synthesis: our model currently handles face poorly since it contains a lot of noticeable details. It is important to be able to recreate these details in a convincing way for good result. There are several promising attempts \autocite{yim2015rotating, huang2017beyond} that focuses solely on facial synthesis that we can follow up on.
 
-3. Include background: our current dataset only contains images without any background. It is more difficult to synthesize views when the object of interest is not presented in isolation and we would like to tackle that problem in the future.
+\item Image background: our current dataset only contains images without any background. It is more difficult to synthesize views when the object of interest is not presented in isolation and we would like to tackle that problem in the future.
 
-4. Transfer learning: we hope to use the model trained from our synthetic dataset on real images. Experiments on transfer learning \autocite{shrivastava2016learning} have shown great results for discriminative models. We hope to achieve similar results for generative models.
+\item Transfer learning: we hope to use the model trained from our synthetic dataset on real images. Experiments on transfer learning \autocite{shrivastava2016learning} have shown great results for discriminative models. We hope to achieve similar results for generative models.
+\end{itemize}
 
 \section{Conclusion}
 We aims at solving 360-degree full human body view synthesis problem by using our self-generated dataset and VAE+GAN modeling approach, while introducing some minor changes on modeling architecture and loss function compared with previous works [1,2,3].
@@ -335,7 +303,7 @@ Current preliminary results show some promising potential of our modeling approa
 
 Our teamwork break down:
 \begin{itemize}
-\item Si (Vincent) Wen: Vincent mainly worked on modeling, including VAE and variants of GAN modeling. He also contributed to the final report.
+\item Si Wen: Si mainly worked on modeling, including VAE and variants of GAN modeling. He also contributed to the final report.
 \item Tiancong Zhou: Tiancong mainly worked on the generation of our synthetic dataset and quantitative evaluation of our results.
 \item Honghao Qiu: Honghao mainly worked on reporting and modeling. He is the main contributor to writing this report.
 \end{itemize}
