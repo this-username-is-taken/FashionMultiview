@@ -127,6 +127,15 @@ Figure 1 further illustrates the idea of this process with a specific example.
 
 \section{Related Work}
 
+
+
+
+\begin{figure*}[htbp]
+\centering
+\includegraphics{Picture2.png}
+\caption{Pipeline Overview}
+\end{figure*}
+
 \subsection{Geometry-based Multiview Synthesis}
 
 A large amount of work has been put into the multiview synthesis problem. Geometry-based approaches are widely used in the past. These approaches either implicitly or explicitly model the geometry of the object in interest, and synthesize novel views from the modeled geometry. Often, these approaches are used when multiple views \autocite{furukawa2015multi} of the object exist as input (e.g. stereo), so visual correspondence can be found and used as constraints to the algorithm. In the case of a single input view, either manual annotation \autocite{chen20133} or additional information \autocite{su20143d} is needed for these algorithms to perform well.
@@ -182,19 +191,16 @@ Since we use batch normalization \autocite{ioffe2015batch} for all layers, we do
 
 Since neural networks take a long time to train, all initial experiments are done using images of size 64x64. The final results are trained on images of 128x128 resolution. We notice significant improvements on the quality of our results when trained using higher resolution images, and we believe this improvement will continue as the resolution goes higher.
 
+
+
 \section{Methods}
 
 \subsection{Overview}
 
-We tackle this problem using deep generative models. We divide our pipeline into two stages: the first stage consists of an input image, a target angle (0 to 360 degrees), and a conditional VAE. The encoder transforms the input image into a latent variable, concatenate it with the target angle, and passes them through the decoder. The decoded image should resemble the input image in the target angle, with noticeable artifact (e.g. blurry, sometimes with incorrect colors). The second stage consists of the original input image, output of the first stage (coarse image), and a conditional GAN. Both images are fed into a hierarchical feature extractor to obtain their latent representations. These latent representations are then concatenated and fed into a generator to obtain the final output. The generator is able to extract low level patterns from the original input image and generate a new image that conforms to the structure of the coarse image with patterns from the original input image.
+We tackle this problem using deep generative models. We divide our pipeline into two stages: the first stage consists of an input image, a target angle (0 to 360 degrees), and a conditional VAE. The encoder transforms the input image into a latent variable, concatenate it with the target angle, and passes them through the decoder. The decoded image should resemble the input image in the target angle, with noticeable artifact (e.g. blurry, sometimes with incorrect colors). The second stage consists of the original input image, output of the first stage (coarse image), and a conditional GAN. Both images are fed into a hierarchical feature extractor to obtain their latent representations. These latent representations are then concatenated and fed into a generator to obtain the final output. The generator is able to extract low level patterns from the original input image and generate a new image that conforms to the structure of the coarse image with patterns from the original input image. The pipeline is depicted in Figure 3.
 
 Our network is written in Python using the Tensorflow framework. We trained our models using NVIDIA Tesla GPUs.
 
-\begin{figure*}[htbp]
-\centering
-\includegraphics{Picture2.png}
-\caption{Pipeline Overview}
-\end{figure*}
 
 \subsection{Stage 1: cVAE}
 
@@ -227,12 +233,12 @@ We use both quantitative and qualitative measures to assess the result of our wo
 
 \subsection{Qualitative results}
 
-The results of our final model is compared with other approaches and the ground truth (see Figure 5). Visually, our results have a more complete global appearance as well as more local details (note how the output of cGAN often loses patches of the body). At the same time, our result looks much sharper than the output of cVAE.
+The results of our final model is compared with other approaches and the ground truth (see Figure 5 and Figure 6). Visually, our results have a more complete global appearance as well as more local details (note how the output of cGAN often loses patches of the body). At the same time, our result looks much sharper than the output of cVAE.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics{PICTURE4.png}
-\caption{//TODO: change to image output summarize graph}
+\includegraphics{mvc.png}
+\caption{Sample images trained and tested using real images in the MVC dataset. Left to right: input image, output from cVAE, output from cGAN, our from our model, ground truth.}
 \end{figure}
 
 \begin{figure}[htbp]
@@ -257,6 +263,13 @@ where $I_x$ is a generated image and $y$ is the label of that image predicted by
 
 \end{itemize}
 
+Figure 7 summarizes the result of our experimentations.
+\begin{figure*}
+  \includegraphics[width=\linewidth]{FigureTable.PNG}
+  \caption{Experimental Results}
+  \label{fig:boat1}
+\end{figure*}
+
 For model comparison, we experimented the following 3 models on MVC and our synthetic dataset respectively, and compare their SSIM, IS, MSE measures:
 
 \begin{itemize}
@@ -265,19 +278,12 @@ For model comparison, we experimented the following 3 models on MVC and our synt
 \item Using our VAE+GAN pipeline.
 \end{itemize}
 
-Figure 7 summarizes the result of our experimentations.
-\begin{figure*}
-  \includegraphics[width=\linewidth]{FigureTable.PNG}
-  \caption{Experimental Results}
-  \label{fig:boat1}
-\end{figure*}
-
 From the result metrics in the table, we can see that the following trends: 
 
 \begin{itemize}
-\item SSIM obtained by our VAE+GAN approach is larger than that of obtained by using VAE or GAN alone, which means our generated output image is more similar to the ground truth; 
-\item IS score for VAE+GAN is larger than that of using VAE only, but smaller than IS score using GAN only, this is expected since GAN model alone allows more variation in the output images. 
-\item MSE analysis shows that VAE+GAN MSE is smaller than that of using VAE or GAN alone, this resonates with the result of SSIM and proves that our approach in general has better performance generating images closer to target. 
+\item SSIM obtained by our approach is larger than that of obtained by using VAE or GAN alone, which means our generated output image is more similar to the ground truth; 
+\item IS score for our approach is larger than that of using VAE only, but smaller than IS score using GAN only, this is expected since GAN model alone allows more variation in the output images. 
+\item MSE analysis shows that our MSE is smaller than that of using VAE or GAN alone, this resonates with the result of SSIM and proves that our approach in general has better performance generating images closer to target. 
 \item In general, our model performs better on synthetic data than on real world data, this is because synthetic data is smoother, contains less details, and has similar pose, so the generation is relatively easier.
 \end{itemize}
 
@@ -296,16 +302,16 @@ Due to time constraints, there are many things on our roadmap that we haven't go
 \end{itemize}
 
 \section{Conclusion}
-We aims at solving 360-degree full human body view synthesis problem by using our self-generated dataset and VAE+GAN modeling approach, while introducing some minor changes on modeling architecture and loss function compared with previous works [1,2,3].
-Current preliminary results show some promising potential of our modeling approach. With the help of large volume self-generated human view data from 360 view angles, we hope we can solve the 360 degree full human body view synthesis problem and achieve state-of-art results.
 
-\textbf{Teammate Contributions:}
+We use a deep learning based approach to solve the multiview synthesis problem. We use a multi-stage generative model to synthesize a novel view of the input image at a given angle. We performed experiments using real and synthetic datasets and achieved promising results using both qualitative and quantitative evaluation methods.
+
+\section{Teammate Contributions:}
 
 Our teamwork break down:
 \begin{itemize}
 \item Si Wen: Si mainly worked on modeling, including VAE and variants of GAN modeling. He also contributed to the final report.
 \item Tiancong Zhou: Tiancong mainly worked on the generation of our synthetic dataset and quantitative evaluation of our results.
-\item Honghao Qiu: Honghao mainly worked on reporting and modeling. He is the main contributor to writing this report.
+\item Honghao Qiu: Honghao mainly worked on variant of GAN modeling and reporting. He is the main contributor to the reports.
 \end{itemize}
 
 \printbibliography
